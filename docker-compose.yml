@@ -1,0 +1,70 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:alpine
+    container_name: mock-sims-postgres
+    environment:
+      POSTGRES_DB: mock_sims
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mock-sims-network
+
+  # Mock SIMS Application
+  mock-sims:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mock-sims-app
+    environment:
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: mock_sims
+      DB_SSLMODE: disable
+
+      # Server
+      HOST: 0.0.0.0
+      PORT: 8000
+
+      # OAuth
+      OAUTH_CLIENT_ID: lms-client-id
+      OAUTH_CLIENT_SECRET: lms-client-secret-change-in-production
+
+      # JWT
+      JWT_SECRET: your-secret-key-change-in-production
+      JWT_EXPIRY: 3600
+
+      # LMS Webhook
+      LMS_WEBHOOK_URL: http://host.docker.internal:50051/webhooks/sims
+      LMS_WEBHOOK_SECRET: webhook-secret-change-in-production
+
+      # CORS
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8080,http://192.168.1.20:8080,http://192.168.1.40:3000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mock-sims-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  mock-sims-network:
+    driver: bridge

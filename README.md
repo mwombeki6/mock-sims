@@ -1,0 +1,294 @@
+# Mock SIMS - MUST Student Information Management System Simulator
+
+A development/testing simulator for **Mbeya University of Science and Technology (MUST)** Student Information Management System. Provides OAuth 2.0 SSO and RESTful APIs for LMS integration testing.
+
+## Features
+
+✅ **OAuth 2.0 Authorization Server** (Authorization Code Flow)
+✅ **Student Management APIs** (Profile, Courses, Grades, Timetable)
+✅ **Faculty Management APIs** (Teaching Assignments, CA Marks Submission)
+✅ **Course Management** (Catalog, Lectures, Enrollments)
+✅ **Real MUST Data Structure** (7 Colleges, 15+ Departments, 19 Bachelor Programs)
+✅ **Webhook Support** (HMAC-signed enrollment notifications to LMS)
+✅ **PostgreSQL Database** with GORM ORM
+✅ **Fiber Web Framework** (Fast HTTP routing)
+
+---
+
+## 📚 API Documentation
+
+**Beautiful modern API documentation with dark mode & orange accents:**
+
+- **🎯 Main Documentation**: http://localhost:8000/docs
+  - Modern dark UI with orange theme
+  - Interactive endpoint explorer
+  - Copy code examples with one click
+  - Organized by resource type (OAuth, Students, Faculty, Courses, Admin)
+  - Quick Start guide with test users
+
+- **📄 OpenAPI JSON**: http://localhost:8000/swagger.json
+- **🔄 Legacy Routes**: `/swagger` and `/redoc` redirect to `/docs`
+
+**Features:**
+- ✅ Beautiful responsive dark mode design
+- ✅ Orange color scheme matching MUST branding
+- ✅ One-click code copying
+- ✅ Expandable endpoint cards
+- ✅ Tabbed navigation for easy browsing
+- ✅ Complete request/response examples
+- ✅ Parameter tables with types and descriptions
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- **Go 1.25+**
+- **PostgreSQL (latest)**
+- **Docker** (recommended for containerized setup)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/mwombeki6/mock-sims.git
+   cd mock-sims
+   ```
+
+2. **Install dependencies**
+   ```bash
+   go mod download
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+4. **Create PostgreSQL database**
+   ```bash
+   createdb mock_sims
+   ```
+
+5. **Run migrations** (auto-migrates on startup)
+   ```bash
+   go run cmd/server/main.go
+   ```
+
+6. **Seed database** (optional)
+   ```bash
+   # Run seed scripts in seeds/ directory
+   psql -d mock_sims -f seeds/01_colleges.sql
+   psql -d mock_sims -f seeds/02_departments.sql
+   # ... (more seed files)
+   ```
+
+---
+
+## Configuration
+
+Edit `.env` file:
+
+```env
+# Server
+PORT=8000
+HOST=0.0.0.0
+
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=sims_user
+DB_PASSWORD=sims_password
+DB_NAME=mock_sims
+
+# OAuth
+OAUTH_CLIENT_ID=lms-client-id
+OAUTH_CLIENT_SECRET=your-secret-here
+OAUTH_REDIRECT_URI=http://localhost:8080/auth/callback
+
+# LMS Webhook
+LMS_WEBHOOK_URL=http://localhost:50051/webhooks/sims
+LMS_WEBHOOK_SECRET=webhook-secret
+```
+
+---
+
+## API Endpoints
+
+### OAuth 2.0
+
+| Method | Endpoint            | Description                 |
+|--------|---------------------|-----------------------------|
+| GET    | `/oauth/authorize`  | Authorization page          |
+| POST   | `/oauth/token`      | Exchange code for token     |
+
+### Student APIs
+
+| Method | Endpoint                       | Description                 |
+|--------|--------------------------------|-----------------------------|
+| GET    | `/api/students/me`             | Get authenticated student   |
+| GET    | `/api/students/:id/courses`    | Get student's courses       |
+| GET    | `/api/students/:id/grades`     | Get student's grades        |
+| GET    | `/api/students/:id/timetable`  | Get student's timetable     |
+
+### Faculty APIs
+
+| Method | Endpoint                           | Description                    |
+|--------|------------------------------------|--------------------------------|
+| GET    | `/api/faculty/me`                  | Get authenticated faculty      |
+| GET    | `/api/faculty/:id/courses`         | Get teaching assignments       |
+| POST   | `/api/faculty/courses/:id/ca-marks`| Submit CA marks                |
+
+### Course APIs
+
+| Method | Endpoint                         | Description                 |
+|--------|----------------------------------|-----------------------------|
+| GET    | `/api/courses`                   | List all courses            |
+| GET    | `/api/courses/:code`             | Get course details          |
+| GET    | `/api/courses/:code/lectures`    | Get course schedule         |
+| GET    | `/api/courses/:code/students`    | Get enrolled students       |
+
+### Admin APIs
+
+| Method | Endpoint               | Description                 |
+|--------|------------------------|-----------------------------|
+| GET    | `/api/colleges`        | List all colleges           |
+| GET    | `/api/departments`     | List all departments        |
+| GET    | `/api/programs`        | List all programs           |
+| POST   | `/api/enrollments`     | Create bulk enrollments     |
+
+---
+
+## OAuth 2.0 Flow (SIMS SSO)
+
+### Authorization Code Flow
+
+```
+1. LMS redirects to: http://localhost:8000/oauth/authorize?
+   client_id=lms-client-id&redirect_uri=http://localhost:8080/auth/callback&response_type=code
+
+2. Student enters SIMS credentials (reg_number + password)
+
+3. SIMS redirects to: http://localhost:8080/auth/callback?code=AUTH_CODE_123
+
+4. LMS exchanges code for token:
+   POST /oauth/token
+   {
+     "grant_type": "authorization_code",
+     "code": "AUTH_CODE_123",
+     "client_id": "lms-client-id",
+     "client_secret": "your-secret"
+   }
+
+5. Response:
+   {
+     "access_token": "eyJhbGci...",
+     "token_type": "Bearer",
+     "expires_in": 3600,
+     "refresh_token": "eyJhbGci..."
+   }
+```
+
+---
+
+## Database Schema
+
+### Colleges (7)
+- College of Information and Communication Technology (CoICT)
+- College of Engineering and Technology (CoET)
+- College of Science and Technical Education (CoSTE)
+- College of Agricultural Sciences and Technology (CoAST)
+- College of Health Sciences and Technology (CoHST)
+- College of Architecture and Construction Technology (CoACT)
+- Centre for Innovation and Technology Transfer (CITT)
+
+### Programs (19 Bachelor's + 13 Diplomas + 6 Masters + 3 PhDs)
+
+See [CLAUDE.md](/CLAUDE.md) for complete list.
+
+---
+
+## Development
+
+### Run in development mode
+```bash
+go run cmd/server/main.go
+```
+
+### Build binary
+```bash
+go build -o mock-sims cmd/server/main.go
+./mock-sims
+```
+
+### Run tests
+```bash
+go test ./...
+```
+
+---
+
+## Docker
+
+### Build Docker image
+```bash
+docker build -t mock-sims:latest .
+```
+
+### Run with Docker Compose
+```bash
+docker-compose up -d
+```
+
+**Access Points:**
+- API Server: http://localhost:8000
+- Swagger UI: http://localhost:8000/swagger
+- ReDoc: http://localhost:8000/redoc
+- Health Check: http://localhost:8000/health
+
+---
+
+## Project Structure
+
+```
+mock-sims/
+├── cmd/
+│   └── server/
+│       └── main.go              # Entry point
+├── internal/
+│   ├── config/                  # Configuration
+│   ├── database/                # Database connection & migrations
+│   ├── models/                  # Database models (GORM)
+│   ├── handlers/                # HTTP handlers
+│   ├── middleware/              # Auth, logging, etc.
+│   ├── services/                # Business logic
+│   └── utils/                   # Helpers (JWT, HMAC, etc.)
+├── migrations/                  # SQL migrations
+├── seeds/                       # Test data
+├── docs/                        # Documentation
+├── .env.example                 # Example environment variables
+├── go.mod                       # Go dependencies
+└── README.md                    # This file
+```
+
+---
+
+## License
+
+MIT License
+
+---
+
+## Contributing
+
+Pull requests welcome! Please follow Go best practices.
+
+---
+
+## Contact
+
+**Maintainer:** mwombeki6
+**GitHub:** https://github.com/mwombeki6/mock-sims
+**Issues:** https://github.com/mwombeki6/mock-sims/issues
