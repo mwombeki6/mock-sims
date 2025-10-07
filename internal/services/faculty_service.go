@@ -139,14 +139,14 @@ func (s *FacultyService) SubmitCAMarks(facultyID uint, courseID uint, marks []st
 	}
 
 	// Send webhook notifications for submitted grades (async, ignore errors)
-	go func() {
-		for _, grade := range updatedGrades {
-			// Only send webhook if grade is complete (has both CA and final exam)
+	go func(grades []models.Grade) {
+		for i := range grades {
+			grade := grades[i]
 			if grade.TotalMarks > 0 && grade.LetterGrade != "" {
 				s.webhookService.SendGradeSubmitted(&grade)
 			}
 		}
-	}()
+	}(append([]models.Grade(nil), updatedGrades...))
 
 	return nil
 }

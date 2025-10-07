@@ -95,15 +95,15 @@ func (s *WebhookService) SendPaymentReceived(payment *models.Payment) error {
 		Event:     "payment.received",
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 		Data: map[string]interface{}{
-			"payment_id":      payment.ID,
-			"student_id":      payment.StudentID,
-			"invoice_number":  payment.InvoiceNumber,
-			"amount":          payment.Amount,
-			"payment_method":  payment.PaymentMethod,
-			"payment_date":    payment.PaymentDate.Format(time.RFC3339),
-			"academic_year":   payment.AcademicYear,
-			"semester":        payment.Semester,
-			"status":          payment.Status,
+			"payment_id":     payment.ID,
+			"student_id":     payment.StudentID,
+			"invoice_number": payment.InvoiceNumber,
+			"amount":         payment.Amount,
+			"payment_method": payment.PaymentMethod,
+			"payment_date":   payment.PaymentDate.Format(time.RFC3339),
+			"academic_year":  payment.AcademicYear,
+			"semester":       payment.Semester,
+			"status":         payment.Status,
 		},
 	}
 
@@ -144,13 +144,16 @@ func (s *WebhookService) sendWebhook(payload WebhookPayload) error {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		s.logWebhookDelivery(payload.Event, 0, err)
 		return fmt.Errorf("failed to send webhook: %w", err)
 	}
 	defer resp.Body.Close()
 
 	// Check response status
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("webhook request failed with status: %d", resp.StatusCode)
+		err := fmt.Errorf("webhook request failed with status: %d", resp.StatusCode)
+		s.logWebhookDelivery(payload.Event, resp.StatusCode, err)
+		return err
 	}
 
 	// Log webhook delivery

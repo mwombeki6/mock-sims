@@ -56,6 +56,7 @@ func (s *AdminService) GetDepartmentsByCollege(collegeID uint) ([]models.Departm
 	var departments []models.Department
 	err := s.db.
 		Where("college_id = ?", collegeID).
+		Preload("College").
 		Preload("Programs").
 		Order("code").
 		Find(&departments).Error
@@ -150,11 +151,12 @@ func (s *AdminService) CreateBulkEnrollments(enrollments []models.Enrollment) er
 	}
 
 	// Send webhook notifications for newly created enrollments (async, ignore errors)
-	go func() {
-		for _, enrollment := range createdEnrollments {
+	go func(enrollments []models.Enrollment) {
+		for i := range enrollments {
+			enrollment := enrollments[i]
 			s.webhookService.SendEnrollmentCreated(&enrollment)
 		}
-	}()
+	}(append([]models.Enrollment(nil), createdEnrollments...))
 
 	return nil
 }

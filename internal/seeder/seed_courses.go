@@ -1,213 +1,132 @@
 package seeder
 
 import (
+	"strings"
 	"time"
 
 	"github.com/mwombeki6/mock-sims/internal/models"
 )
 
-// SeedCourses creates sample courses
+// SeedCourses persists catalogue courses and attaches them to their programs.
 func (s *Seeder) SeedCourses() error {
-	// Get first department (CS)
-	var departments []models.Department
-	s.db.Limit(3).Find(&departments)
-
-	if len(departments) == 0 {
-		return nil
+	deptMap, err := s.departmentMap()
+	if err != nil {
+		return err
+	}
+	programMap, err := s.programMap()
+	if err != nil {
+		return err
 	}
 
-	courses := []models.Course{
-		// Year 1 Courses
-		{
-			Code:         "CS 1101",
-			Name:         "Introduction to Computer Science",
-			Credits:      4,
-			Level:        100,
-			Description:  "Fundamentals of computer science including algorithms, data structures, and programming basics.",
-			DepartmentID: departments[0].ID,
-		},
-		{
-			Code:         "CS 1102",
-			Name:         "Programming with Python",
-			Credits:      4,
-			Level:        100,
-			Description:  "Introduction to programming using Python language.",
-			DepartmentID: departments[0].ID,
-		},
-		{
-			Code:         "MS 1101",
-			Name:         "Calculus I",
-			Credits:      3,
-			Level:        100,
-			Description:  "Differential and integral calculus.",
-			DepartmentID: departments[0].ID,
-		},
-		{
-			Code:         "MS 1102",
-			Name:         "Linear Algebra",
-			Credits:      3,
-			Level:        100,
-			Description:  "Vectors, matrices, and linear transformations.",
-			DepartmentID: departments[0].ID,
-		},
+	for _, seed := range courseSeeds {
+		dept, ok := deptMap[strings.ToUpper(seed.DepartmentCode)]
+		if !ok {
+			continue
+		}
 
-		// Year 2 Courses
-		{
-			Code:         "CS 2201",
-			Name:         "Data Structures and Algorithms",
-			Credits:      4,
-			Level:        200,
-			Description:  "Advanced data structures, algorithm design and analysis.",
-			DepartmentID: departments[0].ID,
-		},
-		{
-			Code:         "CS 2202",
-			Name:         "Object-Oriented Programming",
-			Credits:      4,
-			Level:        200,
-			Description:  "Object-oriented programming concepts using Java.",
-			DepartmentID: departments[0].ID,
-		},
-		{
-			Code:         "CS 2203",
-			Name:         "Database Systems",
-			Credits:      4,
-			Level:        200,
-			Description:  "Relational database design, SQL, normalization.",
-			DepartmentID: departments[0].ID,
-		},
-		{
-			Code:         "CS 2204",
-			Name:         "Computer Networks",
-			Credits:      3,
-			Level:        200,
-			Description:  "Network protocols, TCP/IP, network security.",
-			DepartmentID: departments[0].ID,
-		},
-		{
-			Code:         "MS 2201",
-			Name:         "Discrete Mathematics",
-			Credits:      3,
-			Level:        200,
-			Description:  "Logic, sets, graph theory, combinatorics.",
-			DepartmentID: departments[0].ID,
-		},
-
-		// Year 3 Courses
-		{
-			Code:         "CS 3301",
-			Name:         "Software Engineering",
-			Credits:      4,
-			Level:        300,
-			Description:  "Software development methodologies, design patterns, testing.",
-			DepartmentID: departments[0].ID,
-		},
-		{
-			Code:         "CS 3302",
-			Name:         "Web Technologies",
-			Credits:      4,
-			Level:        300,
-			Description:  "HTML, CSS, JavaScript, web frameworks.",
-			DepartmentID: departments[0].ID,
-		},
-		{
-			Code:         "CS 3303",
-			Name:         "Artificial Intelligence",
-			Credits:      4,
-			Level:        300,
-			Description:  "Search algorithms, machine learning, neural networks.",
-			DepartmentID: departments[0].ID,
-		},
-		{
-			Code:         "CS 3304",
-			Name:         "Operating Systems",
-			Credits:      4,
-			Level:        300,
-			Description:  "Process management, memory management, file systems.",
-			DepartmentID: departments[0].ID,
-		},
-	}
-
-	for _, course := range courses {
-		if err := s.db.FirstOrCreate(&course, models.Course{Code: course.Code}).Error; err != nil {
+		course := models.Course{Code: seed.Code}
+		if err := s.db.FirstOrCreate(&course, models.Course{Code: seed.Code}).Error; err != nil {
 			return err
+		}
+
+		course.Name = seed.Name
+		course.Credits = seed.Credits
+		course.Level = seed.Level
+		course.Description = seed.Description
+		course.DepartmentID = dept.ID
+		if err := s.db.Save(&course).Error; err != nil {
+			return err
+		}
+
+		if len(seed.ProgramCodes) > 0 {
+			assoc := s.db.Model(&course).Association("Programs")
+			if err := assoc.Clear(); err != nil {
+				return err
+			}
+			for _, programCode := range seed.ProgramCodes {
+				program, ok := programMap[strings.ToUpper(programCode)]
+				if !ok {
+					continue
+				}
+				p := program
+				_ = assoc.Append(&p)
+			}
 		}
 	}
 
 	return nil
 }
 
-// SeedLectures creates lecture schedules
+// SeedLectures generates lecture schedules for the current semester using seeded faculties and venues.
 func (s *Seeder) SeedLectures() error {
-	// Get current semester
-	var semester models.Semester
-	if err := s.db.Where("is_current = ?", true).First(&semester).Error; err != nil {
+	var currentSemester models.Semester
+	if err := s.db.Where("is_current = ?", true).First(&currentSemester).Error; err != nil {
 		return nil
 	}
 
-	// Get some courses
 	var courses []models.Course
-	s.db.Limit(6).Find(&courses)
+	if err := s.db.Find(&courses).Error; err != nil {
+		return err
+	}
 
-	// Get faculty members
-	var faculty []models.Faculty
-	s.db.Limit(3).Find(&faculty)
+	var faculties []models.Faculty
+	if err := s.db.Find(&faculties).Error; err != nil {
+		return err
+	}
 
-	// Get venues
 	var venues []models.Venue
-	s.db.Limit(5).Find(&venues)
+	if err := s.db.Find(&venues).Error; err != nil {
+		return err
+	}
 
-	if len(courses) == 0 || len(faculty) == 0 || len(venues) == 0 {
+	if len(courses) == 0 || len(faculties) == 0 || len(venues) == 0 {
 		return nil
 	}
 
-	// Create course assignments first
-	assignments := []models.CourseAssignment{
-		{CourseID: courses[0].ID, FacultyID: faculty[0].ID, SemesterID: semester.ID, Role: "Lecturer"},
-		{CourseID: courses[1].ID, FacultyID: faculty[1].ID, SemesterID: semester.ID, Role: "Lecturer"},
-		{CourseID: courses[2].ID, FacultyID: faculty[2].ID, SemesterID: semester.ID, Role: "Lecturer"},
-		{CourseID: courses[3].ID, FacultyID: faculty[0].ID, SemesterID: semester.ID, Role: "Lecturer"},
-		{CourseID: courses[4].ID, FacultyID: faculty[1].ID, SemesterID: semester.ID, Role: "Lecturer"},
-		{CourseID: courses[5].ID, FacultyID: faculty[2].ID, SemesterID: semester.ID, Role: "Lecturer"},
+	facultyByDepartment := make(map[uint][]models.Faculty)
+	for _, faculty := range faculties {
+		facultyByDepartment[faculty.DepartmentID] = append(facultyByDepartment[faculty.DepartmentID], faculty)
 	}
 
-	for _, assignment := range assignments {
+	for idx, course := range courses {
+		facultyPool := facultyByDepartment[course.DepartmentID]
+		if len(facultyPool) == 0 {
+			facultyPool = faculties
+		}
+		faculty := facultyPool[idx%len(facultyPool)]
+		venue := venues[idx%len(venues)]
+		day := lectureDays[idx%len(lectureDays)]
+		start := lectureStartSlots[idx%len(lectureStartSlots)]
+		end := lectureEndSlots[idx%len(lectureEndSlots)]
+
+		assignment := models.CourseAssignment{
+			CourseID:   course.ID,
+			FacultyID:  faculty.ID,
+			SemesterID: currentSemester.ID,
+			Role:       "Lecturer",
+		}
 		if err := s.db.FirstOrCreate(&assignment, models.CourseAssignment{
-			CourseID:   assignment.CourseID,
-			FacultyID:  assignment.FacultyID,
-			SemesterID: assignment.SemesterID,
+			CourseID:   course.ID,
+			FacultyID:  faculty.ID,
+			SemesterID: currentSemester.ID,
 		}).Error; err != nil {
 			return err
 		}
-	}
 
-	// Create lecture schedules
-	lectures := []models.Lecture{
-		// Monday
-		{CourseID: courses[0].ID, FacultyID: faculty[0].ID, SemesterID: semester.ID, VenueID: venues[0].ID, DayOfWeek: "Monday", StartTime: "08:00", EndTime: "10:00"},
-		{CourseID: courses[1].ID, FacultyID: faculty[1].ID, SemesterID: semester.ID, VenueID: venues[1].ID, DayOfWeek: "Monday", StartTime: "10:00", EndTime: "12:00"},
-
-		// Tuesday
-		{CourseID: courses[2].ID, FacultyID: faculty[2].ID, SemesterID: semester.ID, VenueID: venues[0].ID, DayOfWeek: "Tuesday", StartTime: "08:00", EndTime: "10:00"},
-		{CourseID: courses[3].ID, FacultyID: faculty[0].ID, SemesterID: semester.ID, VenueID: venues[2].ID, DayOfWeek: "Tuesday", StartTime: "14:00", EndTime: "16:00"},
-
-		// Wednesday
-		{CourseID: courses[4].ID, FacultyID: faculty[1].ID, SemesterID: semester.ID, VenueID: venues[1].ID, DayOfWeek: "Wednesday", StartTime: "08:00", EndTime: "10:00"},
-		{CourseID: courses[5].ID, FacultyID: faculty[2].ID, SemesterID: semester.ID, VenueID: venues[0].ID, DayOfWeek: "Wednesday", StartTime: "10:00", EndTime: "12:00"},
-
-		// Thursday
-		{CourseID: courses[0].ID, FacultyID: faculty[0].ID, SemesterID: semester.ID, VenueID: venues[3].ID, DayOfWeek: "Thursday", StartTime: "08:00", EndTime: "10:00"},
-
-		// Friday
-		{CourseID: courses[1].ID, FacultyID: faculty[1].ID, SemesterID: semester.ID, VenueID: venues[0].ID, DayOfWeek: "Friday", StartTime: "10:00", EndTime: "12:00"},
-	}
-
-	for _, lecture := range lectures {
+		lecture := models.Lecture{
+			CourseID:   course.ID,
+			FacultyID:  faculty.ID,
+			SemesterID: currentSemester.ID,
+			VenueID:    venue.ID,
+			DayOfWeek:  day,
+			StartTime:  start,
+			EndTime:    end,
+		}
 		if err := s.db.FirstOrCreate(&lecture, models.Lecture{
-			CourseID:   lecture.CourseID,
-			SemesterID: lecture.SemesterID,
-			DayOfWeek:  lecture.DayOfWeek,
-			StartTime:  lecture.StartTime,
+			CourseID:   course.ID,
+			SemesterID: currentSemester.ID,
+			DayOfWeek:  day,
+			StartTime:  start,
 		}).Error; err != nil {
 			return err
 		}
@@ -216,43 +135,90 @@ func (s *Seeder) SeedLectures() error {
 	return nil
 }
 
-// SeedEnrollments creates student course enrollments
+// SeedEnrollments registers students into program courses for current and previous semesters.
 func (s *Seeder) SeedEnrollments() error {
-	// Get current semester
-	var semester models.Semester
-	if err := s.db.Where("is_current = ?", true).First(&semester).Error; err != nil {
+	var currentSemester models.Semester
+	if err := s.db.Where("is_current = ?", true).First(&currentSemester).Error; err != nil {
 		return nil
 	}
 
-	// Get students
+	var previousSemester models.Semester
+	if err := s.db.Where("id <> ?", currentSemester.ID).Order("start_date DESC").First(&previousSemester).Error; err != nil {
+		// If there is no previous semester we only seed the current one
+		previousSemester = models.Semester{}
+	}
+
 	var students []models.Student
-	s.db.Limit(5).Find(&students)
-
-	// Get courses (first 6 for testing)
-	var courses []models.Course
-	s.db.Limit(6).Find(&courses)
-
-	if len(students) == 0 || len(courses) == 0 {
-		return nil
+	if err := s.db.Find(&students).Error; err != nil {
+		return err
 	}
 
-	// Enroll each student in 4-5 courses
-	for _, student := range students {
-		coursesToEnroll := courses[:4] // First 4 courses for each student
+	var courses []models.Course
+	if err := s.db.Preload("Programs").Find(&courses).Error; err != nil {
+		return err
+	}
 
-		for _, course := range coursesToEnroll {
+	programBuckets := make(map[uint]map[int][]models.Course)
+	for _, course := range courses {
+		for _, program := range course.Programs {
+			bucket := programBuckets[program.ID]
+			if bucket == nil {
+				bucket = make(map[int][]models.Course)
+			}
+			bucket[course.Level] = append(bucket[course.Level], course)
+			programBuckets[program.ID] = bucket
+		}
+	}
+
+	for _, student := range students {
+		bucket := programBuckets[student.ProgramID]
+		if len(bucket) == 0 {
+			continue
+		}
+
+		desiredLevel := student.YearOfStudy * 100
+		if desiredLevel < 100 {
+			desiredLevel = 100
+		}
+
+		currentCourses := selectCoursesForLevel(bucket, desiredLevel, 6)
+		previousCourses := []models.Course{}
+		if previousSemester.ID != 0 {
+			previousCourses = selectCoursesForLevel(bucket, desiredLevel-100, 6)
+		}
+
+		for _, course := range currentCourses {
 			enrollment := models.Enrollment{
 				StudentID:  student.ID,
 				CourseID:   course.ID,
-				SemesterID: semester.ID,
+				SemesterID: currentSemester.ID,
 				Status:     "active",
-				EnrolledAt: time.Now().Add(-30 * 24 * time.Hour), // 30 days ago
+				EnrolledAt: currentSemester.StartDate.Add(-24 * time.Hour * 7),
 			}
-
 			if err := s.db.FirstOrCreate(&enrollment, models.Enrollment{
-				StudentID:  enrollment.StudentID,
-				CourseID:   enrollment.CourseID,
-				SemesterID: enrollment.SemesterID,
+				StudentID:  student.ID,
+				CourseID:   course.ID,
+				SemesterID: currentSemester.ID,
+			}).Error; err != nil {
+				return err
+			}
+		}
+
+		for _, course := range previousCourses {
+			if previousSemester.ID == 0 {
+				break
+			}
+			enrollment := models.Enrollment{
+				StudentID:  student.ID,
+				CourseID:   course.ID,
+				SemesterID: previousSemester.ID,
+				Status:     "completed",
+				EnrolledAt: previousSemester.StartDate.Add(-24 * time.Hour * 7),
+			}
+			if err := s.db.FirstOrCreate(&enrollment, models.Enrollment{
+				StudentID:  student.ID,
+				CourseID:   course.ID,
+				SemesterID: previousSemester.ID,
 			}).Error; err != nil {
 				return err
 			}
@@ -260,4 +226,33 @@ func (s *Seeder) SeedEnrollments() error {
 	}
 
 	return nil
+}
+
+func selectCoursesForLevel(bucket map[int][]models.Course, desiredLevel int, maxCourses int) []models.Course {
+	if maxCourses <= 0 {
+		return nil
+	}
+
+	requestedLevels := []int{desiredLevel, desiredLevel - 100, desiredLevel + 100, 300, 200, 100}
+	courseSet := make([]models.Course, 0, maxCourses)
+	seen := make(map[uint]struct{})
+
+	for _, level := range requestedLevels {
+		if level <= 0 {
+			continue
+		}
+		courses := bucket[level]
+		for _, course := range courses {
+			if _, exists := seen[course.ID]; exists {
+				continue
+			}
+			courseSet = append(courseSet, course)
+			seen[course.ID] = struct{}{}
+			if len(courseSet) >= maxCourses {
+				return courseSet
+			}
+		}
+	}
+
+	return courseSet
 }

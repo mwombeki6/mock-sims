@@ -218,6 +218,7 @@ func (s *Seeder) SeedPrograms() error {
 		// ICT
 		{DepartmentID: deptMap["ICT"], Code: "MB006", Name: "Bachelor of Science in Information and Communication Technology", DegreeLevel: "Bachelor", NTALevel: 8, Duration: 3, TuitionFees: 1500000},
 		{DepartmentID: deptMap["ICT"], Code: "MD005", Name: "Diploma in Information Technology", DegreeLevel: "Diploma", NTALevel: 6, Duration: 2, TuitionFees: 1000000},
+		{DepartmentID: deptMap["ICT"], Code: "MD010", Name: "Diploma in Computer Engineering", DegreeLevel: "Diploma", NTALevel: 6, Duration: 3, TuitionFees: 1200000},
 
 		// Electronics and Telecommunications
 		{DepartmentID: deptMap["EE"], Code: "MB012", Name: "Bachelor of Science in Electronics and Telecommunications Engineering", DegreeLevel: "Bachelor", NTALevel: 8, Duration: 3, TuitionFees: 1600000},
