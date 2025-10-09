@@ -85,10 +85,12 @@ func main() {
 	h := handlers.New(db, cfg)
 
 	// Documentation routes
-	app.Get("/docs", h.Docs.ServeAPIDocs)
 	app.Get("/swagger", h.Docs.ServeSwaggerUI)
 	app.Get("/redoc", h.Docs.ServeReDoc)
 	app.Get("/swagger.json", h.Docs.ServeSwaggerJSON)
+	app.Get("/docs", func(c *fiber.Ctx) error {
+		return c.Redirect("/redoc")
+	})
 
 	// OAuth routes (both GET and POST for authorize)
 	app.Get("/oauth/authorize", h.OAuth.Authorize)
