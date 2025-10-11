@@ -10,7 +10,7 @@ func NewDocsHandler() *DocsHandler {
 	return &DocsHandler{}
 }
 
-// ServeSwaggerUI serves the Swagger UI with dark mode
+// ServeSwaggerUI serves the Swagger UI with beautiful dark mode
 func (h *DocsHandler) ServeSwaggerUI(c *fiber.Ctx) error {
 	html := `<!DOCTYPE html>
 <html lang="en">
@@ -19,39 +19,482 @@ func (h *DocsHandler) ServeSwaggerUI(c *fiber.Ctx) error {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mock SIMS API - Swagger UI</title>
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --blue-primary: #3b82f6;
+            --blue-light: #60a5fa;
+            --blue-dark: #2563eb;
+            --orange-primary: #f97316;
+            --orange-light: #fb923c;
+            --green-primary: #10b981;
+            --green-light: #34d399;
+            --bg-dark: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border-color: #475569;
+        }
+
         body {
             margin: 0;
-            background: #1a1a1a;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
+
         .swagger-ui {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 0;
         }
+
+        /* Top Bar */
         .swagger-ui .topbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
+            background: linear-gradient(135deg, var(--blue-primary) 0%, var(--blue-dark) 100%) !important;
+            padding: 20px 0 !important;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: none !important;
         }
-        .swagger-ui .topbar-wrapper::before {
+
+        .swagger-ui .topbar-wrapper {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        .swagger-ui .topbar .topbar-wrapper .link {
+            display: flex !important;
+            align-items: center;
+        }
+
+        .swagger-ui .topbar .topbar-wrapper .link::after {
             content: "🎓 Mock SIMS API";
-            color: #fff;
+            color: #fff !important;
             font-size: 24px;
             font-weight: 700;
+            letter-spacing: -0.5px;
+            line-height: 1;
         }
-        .swagger-ui .topbar-wrapper img { display: none; }
-        .swagger-ui .info { background: #2d2d2d; color: #e0e0e0; padding: 30px; border-radius: 8px; }
-        .swagger-ui .info .title { color: #667eea; }
-        .swagger-ui .opblock-tag { color: #fff; background: #2d2d2d; border-bottom: 2px solid #667eea; }
-        .swagger-ui .opblock { background: #2d2d2d; border-color: #3d3d3d; }
-        .swagger-ui .opblock.opblock-get .opblock-summary { background: #61affe; }
-        .swagger-ui .opblock.opblock-post .opblock-summary { background: #49cc90; }
-        .swagger-ui .parameters-col_description input { background: #1a1a1a; color: #e0e0e0; border: 1px solid #3d3d3d; }
-        .swagger-ui .btn { background: #667eea; color: #fff; }
-        .swagger-ui .btn.execute { background: #49cc90; }
-        .swagger-ui .response-col_status { color: #49cc90; }
-        .swagger-ui select, .swagger-ui input[type=text] { background: #1a1a1a; color: #e0e0e0; border-color: #3d3d3d; }
+
+        .swagger-ui .topbar .topbar-wrapper .link img,
+        .swagger-ui .topbar-wrapper img,
+        .swagger-ui .topbar-wrapper a img {
+            display: none !important;
+            visibility: hidden !important;
+        }
+
+        .swagger-ui .topbar .download-url-wrapper,
+        .swagger-ui .topbar-wrapper .download-url-wrapper {
+            display: none !important;
+        }
+
+        /* Info Section */
+        .swagger-ui .information-container {
+            background: var(--bg-dark) !important;
+            padding: 40px;
+            margin: 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .swagger-ui .info {
+            margin: 0 auto;
+            max-width: 1520px;
+        }
+
+        .swagger-ui .info .title {
+            color: var(--blue-light);
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .swagger-ui .info .description,
+        .swagger-ui .info p,
+        .swagger-ui .info li {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .swagger-ui .info a {
+            color: var(--blue-light);
+            text-decoration: none;
+        }
+
+        .swagger-ui .info a:hover {
+            color: var(--blue-primary);
+            text-decoration: underline;
+        }
+
+        /* Main Content */
+        .swagger-ui .wrapper {
+            padding: 0 40px 40px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Server Selector - Fix white box */
+        .swagger-ui .scheme-container {
+            background: var(--bg-dark) !important;
+            padding: 30px 0;
+            margin: 0;
+            box-shadow: none;
+        }
+
+        .swagger-ui .scheme-container .schemes {
+            max-width: 1520px;
+            margin: 0 auto;
+            padding: 20px 30px;
+            background: var(--bg-secondary) !important;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .swagger-ui .scheme-container .schemes > label {
+            color: var(--text-secondary) !important;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .swagger-ui .scheme-container .schemes select {
+            background: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 6px;
+            padding: 10px 14px;
+        }
+
+        /* Filter Box */
+        .swagger-ui .filter-container {
+            background: var(--bg-dark) !important;
+            padding: 20px 0;
+            margin: 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .swagger-ui .filter {
+            max-width: 1520px;
+            margin: 0 auto;
+        }
+
+        .swagger-ui .filter input {
+            background: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 6px;
+            padding: 12px 16px;
+            font-size: 15px;
+        }
+
+        .swagger-ui .filter input:focus {
+            border-color: var(--blue-primary) !important;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Section Headers */
+        .swagger-ui .opblock-tag-section {
+            margin-top: 32px;
+        }
+
+        .swagger-ui .opblock-tag {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 20px;
+            font-weight: 600;
+            padding: 16px 24px;
+            border: none;
+            border-left: 4px solid var(--blue-primary);
+            margin-bottom: 16px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .swagger-ui .opblock-tag:hover {
+            background: var(--bg-tertiary);
+            border-left-color: var(--blue-light);
+        }
+
+        .swagger-ui .opblock-tag small {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Operation Blocks */
+        .swagger-ui .opblock {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .swagger-ui .opblock .opblock-summary {
+            padding: 16px 20px;
+            align-items: center;
+        }
+
+        .swagger-ui .opblock.opblock-get {
+            border-left: 4px solid var(--blue-primary);
+        }
+
+        .swagger-ui .opblock.opblock-get .opblock-summary-method {
+            background: var(--blue-primary);
+        }
+
+        .swagger-ui .opblock.opblock-post {
+            border-left: 4px solid var(--green-primary);
+        }
+
+        .swagger-ui .opblock.opblock-post .opblock-summary-method {
+            background: var(--green-primary);
+        }
+
+        .swagger-ui .opblock.opblock-put {
+            border-left: 4px solid var(--orange-primary);
+        }
+
+        .swagger-ui .opblock.opblock-put .opblock-summary-method {
+            background: var(--orange-primary);
+        }
+
+        .swagger-ui .opblock.opblock-delete {
+            border-left: 4px solid #ef4444;
+        }
+
+        .swagger-ui .opblock.opblock-delete .opblock-summary-method {
+            background: #ef4444;
+        }
+
+        .swagger-ui .opblock-summary-method {
+            font-weight: 700;
+            min-width: 80px;
+            border-radius: 6px;
+            padding: 8px 16px;
+            text-align: center;
+        }
+
+        .swagger-ui .opblock-summary-path {
+            color: var(--text-primary);
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .swagger-ui .opblock-summary-description {
+            color: var(--text-secondary);
+        }
+
+        /* Parameters & Request Body */
+        .swagger-ui .opblock-body {
+            background: var(--bg-dark);
+            padding: 24px;
+        }
+
+        .swagger-ui .opblock-section-header {
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            margin: -24px -24px 20px -24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .swagger-ui .opblock-section-header h4 {
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .swagger-ui .table-container,
+        .swagger-ui table {
+            background: transparent;
+        }
+
+        .swagger-ui table thead tr th,
+        .swagger-ui table thead tr td {
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border-color);
+            padding: 12px 16px;
+        }
+
+        .swagger-ui table tbody tr td {
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .swagger-ui .parameter__name {
+            color: var(--blue-light);
+            font-weight: 600;
+        }
+
+        .swagger-ui .parameter__type {
+            color: var(--green-light);
+            font-family: 'Monaco', monospace;
+        }
+
+        /* Input Fields */
+        .swagger-ui input[type=text],
+        .swagger-ui input[type=password],
+        .swagger-ui input[type=email],
+        .swagger-ui textarea,
+        .swagger-ui select {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .swagger-ui input[type=text]:focus,
+        .swagger-ui textarea:focus,
+        .swagger-ui select:focus {
+            outline: none;
+            border-color: var(--blue-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Buttons */
+        .swagger-ui .btn {
+            background: var(--blue-primary);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .swagger-ui .btn:hover {
+            background: var(--blue-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .swagger-ui .btn.execute {
+            background: var(--green-primary);
+        }
+
+        .swagger-ui .btn.execute:hover {
+            background: #059669;
+        }
+
+        .swagger-ui .btn.cancel {
+            background: #ef4444;
+        }
+
+        .swagger-ui .btn.cancel:hover {
+            background: #dc2626;
+        }
+
+        .swagger-ui .btn.authorize {
+            background: var(--orange-primary);
+        }
+
+        .swagger-ui .btn.authorize:hover {
+            background: #ea580c;
+        }
+
+        /* Responses */
+        .swagger-ui .responses-wrapper {
+            margin-top: 24px;
+        }
+
+        .swagger-ui .response {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .swagger-ui .response-col_status {
+            color: var(--green-light);
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .swagger-ui .response-col_description {
+            color: var(--text-secondary);
+        }
+
+        /* Code Blocks */
+        .swagger-ui .highlight-code,
+        .swagger-ui .microlight {
+            background: var(--bg-dark) !important;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            color: var(--text-primary);
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .swagger-ui .copy-to-clipboard {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            right: 8px;
+            top: 8px;
+        }
+
+        .swagger-ui .copy-to-clipboard button {
+            color: var(--text-secondary);
+        }
+
+        /* Models */
+        .swagger-ui .model-box,
+        .swagger-ui .model {
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            padding: 16px;
+        }
+
+        .swagger-ui .model-title {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .swagger-ui .property-row {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .swagger-ui .prop-name {
+            color: var(--blue-light);
+        }
+
+        .swagger-ui .prop-type {
+            color: var(--green-light);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            border: 2px solid var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-color);
+        }
     </style>
 </head>
 <body>
@@ -67,7 +510,15 @@ func (h *DocsHandler) ServeSwaggerUI(c *fiber.Ctx) error {
                     SwaggerUIBundle.presets.apis,
                     SwaggerUIBundle.SwaggerUIStandalonePreset
                 ],
-                layout: "BaseLayout"
+                layout: "BaseLayout",
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                docExpansion: "list",
+                filter: true,
+                syntaxHighlight: {
+                    activate: true,
+                    theme: "monokai"
+                }
             });
         };
     </script>
@@ -76,7 +527,7 @@ func (h *DocsHandler) ServeSwaggerUI(c *fiber.Ctx) error {
 	return c.Type("html").SendString(html)
 }
 
-// ServeReDoc serves the ReDoc documentation with dark mode
+// ServeReDoc serves the ReDoc documentation with beautiful dark mode
 func (h *DocsHandler) ServeReDoc(c *fiber.Ctx) error {
 	html := `<!DOCTYPE html>
 <html lang="en">
@@ -84,33 +535,278 @@ func (h *DocsHandler) ServeReDoc(c *fiber.Ctx) error {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mock SIMS API - Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; padding: 0; }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1e293b !important;
+        }
+
+        /* Force dark backgrounds everywhere */
+        .api-content,
+        .api-info,
+        .menu-content,
+        [role="navigation"],
+        [role="search"],
+        [class*="search-wrap"],
+        [class*="SearchWrap"] {
+            background-color: #1e293b !important;
+        }
+
+        /* Fix white boxes - Parameter examples, enums, etc */
+        .react-tabs__tab-panel,
+        .react-tabs,
+        table,
+        td,
+        th,
+        tr,
+        tbody,
+        thead,
+        pre,
+        code,
+        .redoc-json,
+        [class*="dropdown"],
+        [class*="Dropdown"],
+        [class*="example"],
+        [class*="Example"],
+        [class*="Table"],
+        [class*="enum"],
+        [class*="Enum"],
+        [class*="DropdownLabel"],
+        [class*="DropdownOption"] {
+            background-color: #0f172a !important;
+            color: #cbd5e1 !important;
+            border-color: #334155 !important;
+        }
+
+        /* Search box */
+        input[type="text"],
+        input[type="search"],
+        [class*="search"] input,
+        [class*="Search"] input {
+            background: #0f172a !important;
+            color: #f1f5f9 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 6px !important;
+            padding: 10px 14px !important;
+        }
+
+        input:focus {
+            border-color: #3b82f6 !important;
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+        }
+
+        /* Parameter table styling */
+        table {
+            background: #0f172a !important;
+        }
+
+        table th {
+            background: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-bottom: 2px solid #334155 !important;
+            padding: 12px 16px !important;
+            font-weight: 600 !important;
+        }
+
+        table td {
+            background: #0f172a !important;
+            color: #cbd5e1 !important;
+            border-bottom: 1px solid #334155 !important;
+            padding: 12px 16px !important;
+        }
+
+        table tr:hover td {
+            background: #1e293b !important;
+        }
+
+        /* Example boxes */
+        [class*="example"] {
+            background: #0f172a !important;
+            border: 1px solid #334155 !important;
+            border-radius: 6px !important;
+            padding: 12px !important;
+        }
+
+        /* Dropdown/Select boxes */
+        select,
+        [class*="dropdown"],
+        [class*="Select"] {
+            background: #0f172a !important;
+            color: #f1f5f9 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 6px !important;
+            padding: 8px 12px !important;
+        }
+
+        /* Code blocks */
+        pre,
+        code {
+            background: #0f172a !important;
+            color: #cbd5e1 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 6px !important;
+        }
+
+        /* Property names */
+        [class*="property"] span:first-child,
+        [class*="field"] span:first-child {
+            color: #60a5fa !important;
+            font-weight: 600 !important;
+        }
+
+        /* Property types */
+        [class*="type"] {
+            color: #34d399 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+        }
+
+        /* Required labels */
+        [class*="required"] {
+            color: #ef4444 !important;
+        }
+
+        /* Headers and titles */
+        h1, h2, h3, h4, h5, h6 {
+            color: #f1f5f9 !important;
+        }
+
+        /* Regular text */
+        p, span, div, li {
+            color: #cbd5e1 !important;
+        }
+
+        /* Links */
+        a {
+            color: #3b82f6 !important;
+        }
+
+        a:hover {
+            color: #60a5fa !important;
+        }
+
+        /* Search button */
+        button[aria-label*="search"],
+        [class*="search"] button {
+            background: #f97316 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 6px !important;
+            padding: 10px 20px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+        }
+
+        button[aria-label*="search"]:hover,
+        [class*="search"] button:hover {
+            background: #ea580c !important;
+        }
+
+        /* Method badges - Color palette (Blue, Green, Orange) */
+        [class*="get"],
+        [class*="GET"] {
+            background: #3b82f6 !important;
+            color: white !important;
+        }
+
+        [class*="post"],
+        [class*="POST"] {
+            background: #10b981 !important;
+            color: white !important;
+        }
+
+        [class*="put"],
+        [class*="PUT"] {
+            background: #f97316 !important;
+            color: white !important;
+        }
+
+        [class*="delete"],
+        [class*="DELETE"] {
+            background: #ef4444 !important;
+            color: white !important;
+        }
+
+        [class*="patch"],
+        [class*="PATCH"] {
+            background: #f59e0b !important;
+            color: white !important;
+        }
+
+        /* Response tabs */
+        .react-tabs__tab {
+            background: #0f172a !important;
+            color: #cbd5e1 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 6px 6px 0 0 !important;
+            padding: 10px 16px !important;
+            margin-right: 4px !important;
+        }
+
+        .react-tabs__tab--selected {
+            background: #1e293b !important;
+            color: #3b82f6 !important;
+            border-bottom-color: #1e293b !important;
+        }
+
+        .react-tabs__tab:hover {
+            background: #1e293b !important;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 6px;
+            border: 2px solid #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Server dropdown */
+        [class*="ServerItem"],
+        [class*="server"] {
+            background: #0f172a !important;
+            border: 1px solid #334155 !important;
+            border-radius: 6px !important;
+        }
+
+        /* Input fields */
+        input {
+            background: #0f172a !important;
+            color: #f1f5f9 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 6px !important;
+            padding: 8px 12px !important;
+        }
+
+        input:focus {
+            border-color: #3b82f6 !important;
+            outline: none !important;
+        }
     </style>
 </head>
 <body>
-    <redoc spec-url='/swagger.json'
-    theme='{
-        "colors": {
-            "primary": { "main": "#667eea" },
-            "success": { "main": "#49cc90" },
-            "text": { "primary": "#e0e0e0" },
-            "http": {
-                "get": "#61affe",
-                "post": "#49cc90",
-                "put": "#fca130",
-                "delete": "#f93e3e"
-            }
-        },
-        "typography": {
-            "fontSize": "15px",
-            "fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-            "headings": { "fontWeight": "700" },
-            "code": { "fontSize": "14px", "color": "#667eea" }
-        },
-        "sidebar": { "backgroundColor": "#1a1a1a", "textColor": "#e0e0e0" },
-        "rightPanel": { "backgroundColor": "#0d0d0d", "textColor": "#e0e0e0" }
-    }'></redoc>
+    <redoc
+        spec-url='/swagger.json'
+        hide-download-button
+        required-props-first
+        expand-responses="200,201"
+        json-sample-expand-level="2"
+        native-scrollbars
+    ></redoc>
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
 </body>
 </html>`

@@ -1,8 +1,8 @@
 # Multi-stage build for smaller final image
 FROM golang:alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache git ca-certificates
+# Update package index and install build dependencies
+RUN apk update && apk add --no-cache git ca-certificates
 
 # Set working directory
 WORKDIR /build
@@ -23,8 +23,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o mock-sims-seed cm
 # Final stage
 FROM alpine:latest
 
-# Install ca-certificates for HTTPS
-RUN apk --no-cache add ca-certificates
+# Update package index and install ca-certificates for HTTPS
+RUN apk update && apk add --no-cache ca-certificates
 
 WORKDIR /app
 
